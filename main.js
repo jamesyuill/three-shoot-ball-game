@@ -1,10 +1,12 @@
 import * as THREE from 'three';
-// import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import RAPIER from '@dimforge/rapier3d-compat';
+import Cube from './Cube.js';
 
-await RAPIER.init();
+await RAPIER.init({});
 
 const physicsObjects = [];
+const cubes = [];
+let counter = 0;
 
 //MOUSE CONTROLS
 const mouse = new THREE.Vector2();
@@ -45,73 +47,67 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 1);
 scene.add(ambientLight);
 
 //GEOMETRY
-const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-const boxMat = new THREE.MeshMatcapMaterial({ color: 'red' });
-const boxMesh = new THREE.Mesh(boxGeo, boxMat);
+// const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+// const boxMat = new THREE.MeshMatcapMaterial({ color: 'red' });
+// const boxMesh = new THREE.Mesh(boxGeo, boxMat);
 
-scene.add(boxMesh);
+// scene.add(boxMesh);
 
-const cubeBody = world.createRigidBody(
-  RAPIER.RigidBodyDesc.dynamic().setTranslation(0, 2, -10),
-);
+// const cubeBody = world.createRigidBody(
+//   RAPIER.RigidBodyDesc.dynamic().setTranslation(0, 2, -10),
+// );
 
-const cubeCollider = RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5).setDensity(1);
-world.createCollider(cubeCollider, cubeBody);
+// const cubeCollider = RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5).setDensity(1);
+// world.createCollider(cubeCollider, cubeBody);
 
-let cubeWasHit = false;
+// let cubeWasHit = false;
 // setTimeout(() => {
 //   cubeWasHit = false;
 // }, 1000);
 
 //FLOOR
-const boxPlaneGeo = new THREE.BoxGeometry(10, 40, 1);
+const boxPlaneGeo = new THREE.BoxGeometry(10, 20, 1);
 const boxPlaneMat = new THREE.MeshMatcapMaterial();
 const boxPlaneMesh = new THREE.Mesh(boxPlaneGeo, boxPlaneMat);
 boxPlaneMesh.rotation.set(-Math.PI / 2, 0, 0);
-boxPlaneMesh.position.set(0, -0.5, 0);
+boxPlaneMesh.position.set(0, -0.5, 4);
 scene.add(boxPlaneMesh);
 
 const ground = world.createRigidBody(
-  RAPIER.RigidBodyDesc.fixed().setTranslation(0, -0.5, 0),
+  RAPIER.RigidBodyDesc.fixed().setTranslation(0, -0.5, 4),
 );
 
-world.createCollider(RAPIER.ColliderDesc.cuboid(5, 0.5, 20), ground);
+world.createCollider(RAPIER.ColliderDesc.cuboid(5, 0.5, 10), ground);
 
 //ANIMATE
 function animate() {
   requestAnimationFrame(animate);
+  let x = Math.round(Math.random() * 6) - 3;
 
+  if (counter % 100 === 0) {
+    cubes.push(new Cube(world, scene, { x: x, y: 3, z: -5 }, 1, cubes));
+  }
   world.step();
 
-  physicsObjects.forEach((obj) => {
-    // assuming this is your bullet
-    world.contactPair(obj.collider, cubeCollider, () => {
-      const vel = obj.body.linvel();
+  for (let i = 0; i < physicsObjects.length; i++) {
+    const bullet = physicsObjects[i];
 
-      cubeBody.applyImpulse(
-        {
-          x: -vel.x,
-          y: -vel.y,
-          z: -vel.z,
-        },
-        true,
-      );
-    });
-    cubeWasHit = true;
-  });
+    if (bullet.type !== 'bullet') continue;
 
-  if (!cubeWasHit) {
-    const vel = cubeBody.linvel();
+    for (let j = 0; j < cubes.length; j++) {
+      const cube = cubes[j];
 
-    cubeBody.setLinvel(
-      {
-        x: vel.x,
-        y: vel.y,
-        z: 5,
-      },
-      true,
-    );
+      world.contactPair(bullet.collider, cube.collider, () => {
+        console.log('HIT');
+
+        cube.destroyAndSplit();
+        bullet.alive = false;
+      });
+    }
   }
+  cubes.forEach((cube) => {
+    cube.update();
+  });
 
   // Update bullets
   for (let i = physicsObjects.length - 1; i >= 0; i--) {
@@ -119,7 +115,7 @@ function animate() {
 
     const pos = obj.body.translation();
 
-    if (pos.y < -10) {
+    if (obj.type === 'bullet' && obj.alive === false) {
       scene.remove(obj.mesh);
       world.removeRigidBody(obj.body);
       physicsObjects.splice(i, 1);
@@ -132,14 +128,8 @@ function animate() {
     obj.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
   }
 
-  // Sync cube mesh
-  const position = cubeBody.translation();
-  const rotation = cubeBody.rotation();
-
-  boxMesh.position.set(position.x, position.y, position.z);
-  boxMesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
-
   renderer.render(scene, camera);
+  counter++;
 }
 animate();
 
@@ -203,5 +193,10 @@ function shootSphere(mouse) {
   );
 
   // store for updates
-  physicsObjects.push({ mesh: sphere, body, collider: collider });
+  physicsObjects.push({
+    type: 'bullet',
+    mesh: sphere,
+    body: body,
+    collider: collider,
+  });
 }
