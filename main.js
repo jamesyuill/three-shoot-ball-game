@@ -1,12 +1,18 @@
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import Cube from './Cube.js';
+import Lives from './Lives.js';
+import Score from './Score.js';
 
 await RAPIER.init({});
 
 const physicsObjects = [];
 const cubes = [];
 let counter = 0;
+let speed = 100;
+let numOfLives = 10;
+let isGameRunning = false;
+let scoreCard = 0;
 
 //MOUSE CONTROLS
 const mouse = new THREE.Vector2();
@@ -46,24 +52,14 @@ document.body.appendChild(renderer.domElement);
 const ambientLight = new THREE.AmbientLight(0xffffff, 1);
 scene.add(ambientLight);
 
-//GEOMETRY
-// const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-// const boxMat = new THREE.MeshMatcapMaterial({ color: 'red' });
-// const boxMesh = new THREE.Mesh(boxGeo, boxMat);
+//LIVES
+const lives = new Lives(scene);
 
-// scene.add(boxMesh);
+//SCORE
+const score = new Score(scene);
 
-// const cubeBody = world.createRigidBody(
-//   RAPIER.RigidBodyDesc.dynamic().setTranslation(0, 2, -10),
-// );
-
-// const cubeCollider = RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5).setDensity(1);
-// world.createCollider(cubeCollider, cubeBody);
-
-// let cubeWasHit = false;
-// setTimeout(() => {
-//   cubeWasHit = false;
-// }, 1000);
+//START CUBE
+const startCube = new Cube(world, scene, { x: 0, y: 0.5, z: 0 }, 1, cubes);
 
 //FLOOR
 const boxPlaneGeo = new THREE.BoxGeometry(10, 20, 1);
@@ -80,12 +76,22 @@ const ground = world.createRigidBody(
 world.createCollider(RAPIER.ColliderDesc.cuboid(5, 0.5, 10), ground);
 
 //ANIMATE
+
 function animate() {
   requestAnimationFrame(animate);
   let x = Math.round(Math.random() * 6) - 3;
 
-  if (counter % 100 === 0) {
-    cubes.push(new Cube(world, scene, { x: x, y: 3, z: -5 }, 1, cubes));
+  if (isGameRunning) {
+    if (counter % speed === 0) {
+      if (counter > 1000) {
+        speed = 50;
+      }
+      if (counter > 2000) {
+        speed = 25;
+      }
+      cubes.push(new Cube(world, scene, { x: x, y: 3, z: -5 }, 1, cubes));
+    }
+    counter++;
   }
   world.step();
 
@@ -94,19 +100,40 @@ function animate() {
 
     if (bullet.type !== 'bullet') continue;
 
+    //Start Cube collider check
+
+    world.contactPair(bullet.collider, startCube.collider, () => {
+      startCube.destroyAndSplit();
+      setTimeout(() => {
+        isGameRunning = true;
+      }, 500);
+    });
+
     for (let j = 0; j < cubes.length; j++) {
       const cube = cubes[j];
 
       world.contactPair(bullet.collider, cube.collider, () => {
-        console.log('HIT');
-
         cube.destroyAndSplit();
         bullet.alive = false;
+        if (isGameRunning) {
+          scoreCard++;
+          score.updateScore(scoreCard);
+        }
       });
     }
   }
   cubes.forEach((cube) => {
-    cube.update();
+    cube.update(isGameRunning);
+
+    if (cube.checkEvaded() && cube.size === 1) {
+      numOfLives--;
+      lives.updateScore(numOfLives);
+
+      //End of Game Check
+      if (numOfLives === 0) {
+        isGameRunning = false;
+      }
+    }
   });
 
   // Update bullets
@@ -129,7 +156,6 @@ function animate() {
   }
 
   renderer.render(scene, camera);
-  counter++;
 }
 animate();
 
@@ -154,6 +180,7 @@ function shootSphere(mouse) {
     new THREE.SphereGeometry(0.2, 16, 16),
     new THREE.MeshStandardMaterial({ color: 'green' }),
   );
+
   scene.add(sphere);
 
   // --- CREATE PHYSICS BODY ---

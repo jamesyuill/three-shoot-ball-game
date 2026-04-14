@@ -10,6 +10,7 @@ class Cube {
     this.cubesArray = cubesArray;
     this.scene = scene;
     this.alive = true;
+    this.evaded = false;
 
     // Three.js mesh
     this.mesh = new THREE.Mesh(
@@ -53,14 +54,14 @@ class Cube {
     }, 1000);
   }
 
-  update() {
+  update(isGameRunning) {
     if (!this.alive) return;
     const pos = this.body.translation();
     const rot = this.body.rotation();
     this.mesh.position.set(pos.x, pos.y, pos.z);
     this.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
 
-    if (!this.wasHit) {
+    if (!this.wasHit && isGameRunning) {
       this.body.applyImpulse(
         {
           x: 0,
@@ -108,6 +109,21 @@ class Cube {
           this.cubesArray.push(cube);
         }
       }
+    }
+  }
+
+  checkEvaded() {
+    if (this.evaded && this.alive) {
+      const index = this.cubesArray.indexOf(this);
+      this.cubesArray.splice(index, 1);
+      this.world.removeRigidBody(this.body);
+      this.mesh.removeFromParent();
+      return;
+    }
+
+    if (this.mesh.position.z >= 16) {
+      this.evaded = true;
+      return this.evaded;
     }
   }
 }
