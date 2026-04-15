@@ -2,17 +2,15 @@ import * as THREE from 'three';
 import { FontLoader } from '/node_modules/three/examples/jsm/loaders/FontLoader.js';
 
 import { TextGeometry } from '/node_modules/three/examples/jsm/geometries/TextGeometry.js';
+import fontUrl from 'three/examples/fonts/helvetiker_regular.typeface.json';
 class Score {
   constructor(scene) {
     this.loader = new FontLoader();
 
-    this.loader.load(
-      '/node_modules/three/examples/fonts/helvetiker_regular.typeface.json',
-      (font) => {
-        this.font = font;
-        this.createText();
-      },
-    );
+    this.loader.load(fontUrl, (font) => {
+      this.font = font;
+      this.createText();
+    });
     this.score = 10;
     this.scene = scene;
   }
