@@ -10,7 +10,7 @@ const physicsObjects = [];
 const cubes = [];
 let counter = 0;
 let speed = 100;
-let numOfLives = 10;
+let numOfLives = 5;
 let isGameRunning = false;
 let scoreCard = 0;
 
@@ -93,6 +93,7 @@ function animate() {
     }
     counter++;
   }
+
   world.step();
 
   for (let i = 0; i < physicsObjects.length; i++) {

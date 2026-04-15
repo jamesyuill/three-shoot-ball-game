@@ -13,7 +13,7 @@ class Lives {
         this.createText();
       },
     );
-    this.score = 10;
+    this.score = 5;
     this.scene = scene;
   }
 
