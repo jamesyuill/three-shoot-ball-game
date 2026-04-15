@@ -66,7 +66,7 @@ class Cube {
         {
           x: 0,
           y: 0,
-          z: 0.1, // forward motion
+          z: 0.1,
         },
         true,
       );

@@ -79,14 +79,14 @@ world.createCollider(RAPIER.ColliderDesc.cuboid(5, 0.5, 10), ground);
 
 function animate() {
   requestAnimationFrame(animate);
-  let x = Math.round(Math.random() * 6) - 3;
+  let x = Math.round(Math.random() * 8) - 4;
 
   if (isGameRunning) {
     if (counter % speed === 0) {
-      if (counter > 1000) {
+      if (counter > 500) {
         speed = 50;
       }
-      if (counter > 2000) {
+      if (counter > 1500) {
         speed = 25;
       }
       cubes.push(new Cube(world, scene, { x: x, y: 3, z: -5 }, 1, cubes));

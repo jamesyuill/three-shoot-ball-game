@@ -10,7 +10,7 @@ class Score {
       this.font = font;
       this.createText();
     });
-    this.score = 10;
+    this.score = 0;
     this.scene = scene;
   }
 
